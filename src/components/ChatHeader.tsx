@@ -5,6 +5,7 @@ import { ArrowLeft, X, Trash2 } from "lucide-react";
 import { chatApi } from "@/lib/api";
 import { getInitials } from "@/lib/utils";
 import { useChatContext } from "@/context/ChatContext";
+import { useContacts } from "@/context/ContactsContext";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -17,6 +18,7 @@ interface ChatHeaderProps {
 export default function ChatHeader({ contactId, name, avatar }: ChatHeaderProps) {
   const router = useRouter();
   const { onlineUsers } = useChatContext();
+  const { refetch } = useContacts();
   const [showConfirm, setShowConfirm] = useState(false);
   const [removing, setRemoving] = useState(false);
 
@@ -27,6 +29,7 @@ export default function ChatHeader({ contactId, name, avatar }: ChatHeaderProps)
     try {
       await chatApi.delete(`/api/v1/contacts/${contactId}`);
       toast.success("Contact removed");
+      refetch();
       router.push("/chat");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to remove contact";
