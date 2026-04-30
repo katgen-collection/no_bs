@@ -8,6 +8,7 @@ import { getInitials } from "@/lib/utils";
 import Modal from "@/components/Modal";
 import type { ContactRequest } from "@/types";
 import { toast } from "sonner";
+import { useChatContext } from "@/context/ChatContext";
 
 interface ContactRequestsModalProps {
   open: boolean;
@@ -23,6 +24,7 @@ export default function ContactRequestsModal({
   onContactsChanged,
 }: ContactRequestsModalProps) {
   const { user: me } = useAuth();
+  const { subscribeContactRequestIncoming, subscribeContactRequestUpdated } = useChatContext();
   const [tab, setTab] = useState<Tab>("incoming");
   const [incoming, setIncoming] = useState<ContactRequest[]>([]);
   const [outgoing, setOutgoing] = useState<ContactRequest[]>([]);
@@ -55,6 +57,22 @@ export default function ContactRequestsModal({
   useEffect(() => {
     if (open) fetchRequests();
   }, [open, fetchRequests]);
+
+  // Listen for real-time updates
+  useEffect(() => {
+    if (!open) return;
+    const unsubIncoming = subscribeContactRequestIncoming(() => {
+      fetchRequests();
+    });
+    const unsubUpdated = subscribeContactRequestUpdated(() => {
+      fetchRequests();
+      onContactsChanged(); // also refresh sidebar if a request was accepted
+    });
+    return () => {
+      unsubIncoming();
+      unsubUpdated();
+    };
+  }, [open, subscribeContactRequestIncoming, subscribeContactRequestUpdated, fetchRequests, onContactsChanged]);
 
   const handleAccept = useCallback(
     async (id: string) => {

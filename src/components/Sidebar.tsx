@@ -19,7 +19,11 @@ import { useEffect, useCallback } from "react";
 export default function Sidebar() {
   const pathname = usePathname();
   const { user: me } = useAuth();
-  const { onlineUsers } = useChatContext();
+  const { 
+    onlineUsers,
+    subscribeContactRequestIncoming,
+    subscribeContactRequestUpdated
+  } = useChatContext();
   const { contacts, loading, refetch } = useContacts();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -45,6 +49,20 @@ export default function Sidebar() {
   useEffect(() => {
     fetchPendingCount();
   }, [fetchPendingCount]);
+
+  useEffect(() => {
+    const unsubIncoming = subscribeContactRequestIncoming(() => {
+      fetchPendingCount();
+    });
+    const unsubUpdated = subscribeContactRequestUpdated(() => {
+      refetch();
+      fetchPendingCount();
+    });
+    return () => {
+      unsubIncoming();
+      unsubUpdated();
+    };
+  }, [subscribeContactRequestIncoming, subscribeContactRequestUpdated, fetchPendingCount, refetch]);
 
   // Filter contacts locally
   const filtered = contacts.filter((c) => {

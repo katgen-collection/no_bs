@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useCallback, useState } from "react";
-import type { Message } from "@/types";
+import type { Message, ContactRequest } from "@/types";
 import { toast } from "sonner";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -25,6 +25,8 @@ const WSEvents = {
   MESSAGE_INCOMING: "message:incoming",
   MESSAGE_ACK: "message:ack",
   MESSAGE_READ: "message:read",
+  CONTACT_REQUEST_INCOMING: "contact_request:incoming",
+  CONTACT_REQUEST_UPDATED: "contact_request:updated",
   ERROR: "error",
 
   // Inbound (client → server)
@@ -38,6 +40,8 @@ export interface ChatCallbacks {
   onIncomingMessage?: (message: Message) => void;
   onMessageAck?: (message: Message) => void;
   onMessageRead?: (data: { message_id?: string; message_ids?: string[]; reader_id: string }) => void;
+  onContactRequestIncoming?: (req: ContactRequest) => void;
+  onContactRequestUpdated?: (req: ContactRequest) => void;
 }
 
 // ─── Hook ───────────────────────────────────────────────────────────────────
@@ -132,6 +136,14 @@ export function useChat(callbacks?: ChatCallbacks) {
           callbacksRef.current?.onMessageRead?.(
             data as { message_id?: string; message_ids?: string[]; reader_id: string },
           );
+          break;
+
+        case WSEvents.CONTACT_REQUEST_INCOMING:
+          callbacksRef.current?.onContactRequestIncoming?.(data as ContactRequest);
+          break;
+
+        case WSEvents.CONTACT_REQUEST_UPDATED:
+          callbacksRef.current?.onContactRequestUpdated?.(data as ContactRequest);
           break;
 
         case WSEvents.ERROR: {

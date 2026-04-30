@@ -8,12 +8,13 @@ import {
   type ReactNode,
 } from "react";
 import { useChat, type ChatCallbacks } from "@/hooks/useChat";
-import type { Message } from "@/types";
+import type { Message, ContactRequest } from "@/types";
 
 // ─── Context shape ──────────────────────────────────────────────────────────
 
 type MessageHandler = (message: Message) => void;
 type ReadHandler = (data: { message_id?: string; message_ids?: string[]; reader_id: string }) => void;
+type ContactRequestHandler = (req: ContactRequest) => void;
 
 interface ChatContextValue {
   onlineUsers: string[];
@@ -27,6 +28,10 @@ interface ChatContextValue {
   subscribeAck: (handler: MessageHandler) => () => void;
   /** Subscribe to read receipt events (returns unsubscribe fn) */
   subscribeRead: (handler: ReadHandler) => () => void;
+  /** Subscribe to incoming contact requests */
+  subscribeContactRequestIncoming: (handler: ContactRequestHandler) => () => void;
+  /** Subscribe to contact request updates (e.g. accepted) */
+  subscribeContactRequestUpdated: (handler: ContactRequestHandler) => () => void;
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null);
@@ -39,6 +44,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const incomingHandlers = useRef<Set<MessageHandler>>(new Set());
   const ackHandlers = useRef<Set<MessageHandler>>(new Set());
   const readHandlers = useRef<Set<ReadHandler>>(new Set());
+  const requestIncomingHandlers = useRef<Set<ContactRequestHandler>>(new Set());
+  const requestUpdatedHandlers = useRef<Set<ContactRequestHandler>>(new Set());
 
   const callbacks: ChatCallbacks = {
     onIncomingMessage: (msg) => {
@@ -49,6 +56,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     },
     onMessageRead: (data) => {
       readHandlers.current.forEach((fn) => fn(data));
+    },
+    onContactRequestIncoming: (req) => {
+      requestIncomingHandlers.current.forEach((fn) => fn(req));
+    },
+    onContactRequestUpdated: (req) => {
+      requestUpdatedHandlers.current.forEach((fn) => fn(req));
     },
   };
 
@@ -69,6 +82,16 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     return () => { readHandlers.current.delete(handler); };
   }, []);
 
+  const subscribeContactRequestIncoming = useCallback((handler: ContactRequestHandler) => {
+    requestIncomingHandlers.current.add(handler);
+    return () => { requestIncomingHandlers.current.delete(handler); };
+  }, []);
+
+  const subscribeContactRequestUpdated = useCallback((handler: ContactRequestHandler) => {
+    requestUpdatedHandlers.current.add(handler);
+    return () => { requestUpdatedHandlers.current.delete(handler); };
+  }, []);
+
   return (
     <ChatContext.Provider
       value={{
@@ -79,6 +102,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         subscribeIncoming,
         subscribeAck,
         subscribeRead,
+        subscribeContactRequestIncoming,
+        subscribeContactRequestUpdated,
       }}
     >
       {children}
