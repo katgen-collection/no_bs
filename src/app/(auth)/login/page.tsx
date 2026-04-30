@@ -17,7 +17,7 @@ export default function LoginPage() {
   }, [user, router]);
 
   const handleLoginClick = () => {
-    const authUrl = process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:3000";
+    const authUrl = process.env.NEXT_PUBLIC_SSO_URL || "http://localhost:3000";
     const redirectUrl = encodeURIComponent(window.location.origin + "/auth-callback");
     
     // Calculate center of screen for popup
